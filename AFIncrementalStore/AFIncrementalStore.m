@@ -22,7 +22,9 @@
 
 #import "AFIncrementalStore.h"
 #import "AFHTTPClient.h"
+#import "AFFetchSaveManager.h"
 #import <objc/runtime.h>
+
 
 NSString * const AFIncrementalStoreUnimplementedMethodException = @"com.alamofire.incremental-store.exceptions.unimplemented-method";
 
@@ -592,6 +594,13 @@ inline NSString * AFResourceIdentifierFromReferenceObject(id referenceObject) {
          withContext:(NSManagedObjectContext *)context
                error:(NSError *__autoreleasing *)error
 {
+	NSString *requestIdentifier = [context.userInfo objectForKey:AFFetchSaveManagerPersistentStoreRequestIdentifierKey];
+	if (requestIdentifier && requestIdentifier.length)
+	{
+		[persistentStoreRequest af_setRequestIdentifier:requestIdentifier];
+		[context.userInfo removeObjectForKey:AFFetchSaveManagerPersistentStoreRequestIdentifierKey];
+	}
+	
     if (persistentStoreRequest.requestType == NSFetchRequestType) {
         return [self executeFetchRequest:(NSFetchRequest *)persistentStoreRequest withContext:context error:error];
     } else if (persistentStoreRequest.requestType == NSSaveRequestType) {
