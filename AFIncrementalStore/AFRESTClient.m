@@ -76,7 +76,7 @@ NSDate * AFDateFromISO8601String(NSString *ISO8601String) {
         .tm_isdst = -1,
     };
     
-    strptime_l(newStr, "%Y-%m-%d %H:%M:%S %z", &tm, NULL);
+    strptime_l(newStr, "%Y-%m-%dT%H:%M:%S %z", &tm, NULL);
     
     return [NSDate dateWithTimeIntervalSince1970:mktime(&tm)];
 }
@@ -198,7 +198,7 @@ static NSString * AFPluralizedString(NSString *string) {
     [[entity attributesByName] enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
         if ([(NSAttributeDescription *)obj attributeType] == NSDateAttributeType) {
             id value = [mutableAttributes valueForKey:key];
-            if (value && ![value isEqual:[NSNull null]]) {
+            if (value && ![value isEqual:[NSNull null]] && [value isKindOfClass:[NSString class]]) {
                 [mutableAttributes setValue:AFDateFromISO8601String(value) forKey:key];
             }
         }
