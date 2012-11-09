@@ -242,10 +242,13 @@ inline NSString * AFResourceIdentifierFromReferenceObject(id referenceObject) {
         
         __block NSManagedObject *managedObject = nil;
         [context performBlockAndWait:^{
+			NSManagedObjectID *objectIDForEntityWithRID = [self objectIDForEntity:entity withResourceIdentifier:resourceIdentifier];
             managedObject = [context existingObjectWithID:[self objectIDForEntity:entity withResourceIdentifier:resourceIdentifier] error:nil];
+			DLogError(@"\nrID: %@\nObjectID: %@", resourceIdentifier, objectIDForEntityWithRID);
         }];
         
         [managedObject setValuesForKeysWithDictionary:attributes];
+		DLogError(@"\nManagedObject: %@", managedObject);
         
         NSManagedObjectID *backingObjectID = [self objectIDForBackingObjectForEntity:entity withResourceIdentifier:resourceIdentifier];
         __block NSManagedObject *backingObject = nil;
