@@ -23,34 +23,6 @@
 #import <CoreData/CoreData.h>
 #import "AFNetworking.h"
 
-#import <objc/runtime.h>
-
-@interface NSPersistentStoreRequest (_AFIncrementalStore)
-
-/**
- A property set by AFIncrementalStore to uniquely identify a NSFetchRequest or NSSaveChanges request, in order for the AFFetchSaveManager class to correctly identify it via NSNotification, and subsequently fire the appropriate completion block for that request. 
- 
- @discussion If there is a completion block associated with the NSPersistentStoreRequest, AFFetchSaveManager will have generated this unique identifier upon first dispatch of the request and conveys it to the AFIncrementalStore by attaching it to the `userInfo` dictionary of the NSManagedObjectContext.
- */
-@property (readwrite, nonatomic, copy, setter = af_setRequestIdentifier:) NSString *af_requestIdentifier;
-
-@end
-
-static char kAFRequestIdentifierObjectKey;
-
-@implementation NSPersistentStoreRequest (_AFIncrementalStore)
-@dynamic af_requestIdentifier;
-
-- (NSString *)af_requestIdentifier {
-	return (NSString *)objc_getAssociatedObject(self, &kAFRequestIdentifierObjectKey);
-}
-
-- (void)af_setRequestIdentifier:(NSString *)requestIdentifier {
-	objc_setAssociatedObject(self, &kAFRequestIdentifierObjectKey, requestIdentifier, OBJC_ASSOCIATION_COPY_NONATOMIC);
-}
-
-@end
-
 @protocol AFIncrementalStoreDelegate;
 @protocol AFIncrementalStoreHTTPClient;
 
