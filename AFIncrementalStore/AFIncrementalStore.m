@@ -469,12 +469,15 @@ inline NSString * AFResourceIdentifierFromReferenceObject(id referenceObject) {
     if ([self.HTTPClient respondsToSelector:@selector(requestForUpdatedObject:)]) {
         for (NSManagedObject *updatedObject in [saveChangesRequest updatedObjects]) {
             NSManagedObjectID *backingObjectID = [self objectIDForBackingObjectForEntity:[updatedObject entity] withResourceIdentifier:AFResourceIdentifierFromReferenceObject([self referenceObjectForObjectID:updatedObject.objectID])];
-
+			
             NSURLRequest *request = [self.HTTPClient requestForUpdatedObject:updatedObject];
             if (!request) {
                 [backingContext performBlockAndWait:^{
                     NSManagedObject *backingObject = [backingContext existingObjectWithID:backingObjectID error:nil];
 					[self applyValueFromManagedObject:updatedObject toBackingManagedObject:backingObject];
+					NSArray *attributeKeys = updatedObject.entity.attributesByName.allKeys;
+					// Update only the attribute, the relationship will update with other request
+					[backingObject setValuesForKeysWithDictionary:[updatedObject dictionaryWithValuesForKeys:attributeKeys]];
                     [backingContext save:nil];
                 }];
                 continue;
@@ -805,9 +808,9 @@ inline NSString * AFResourceIdentifierFromReferenceObject(id referenceObject) {
                                              [[NSMutableOrderedSet alloc] initWithCapacity:[relationshipObject count]] :
                                              [[NSMutableSet alloc] initWithCapacity:[relationshipObject count]]);
             for (NSManagedObject *relationship in relationshipObject) {
-				if (![relationship.objectID isTemporaryID])
+				if (![[relationship objectID] isTemporaryID])
 				{
-					NSManagedObjectID *backingRelationshipID = [self objectIDForBackingObjectForEntity:relationshipDescrption.entity
+					NSManagedObjectID *backingRelationshipID = [self objectIDForBackingObjectForEntity:relationshipDescrption.destinationEntity
 																				withResourceIdentifier:[self referenceObjectForObjectID:relationship.objectID]];
 					if (backingRelationshipID) {
 						NSManagedObject *backingRelationshipObject = [backingObject.managedObjectContext existingObjectWithID:backingRelationshipID
@@ -821,16 +824,16 @@ inline NSString * AFResourceIdentifierFromReferenceObject(id referenceObject) {
             
             [backingObject setValue:backingRelationshipObjects forKey:relationshipName];
         } else {
-            if (![[relationshipObject objectID] isTemporaryID])
-            {
-                NSManagedObjectID *backingRelationshipID = [self objectIDForBackingObjectForEntity:relationshipDescrption.entity
-                                                                            withResourceIdentifier:[self referenceObjectForObjectID:[relationshipObject objectID]]];
-                if (backingRelationshipID) {
-                    NSManagedObject *backingRelationshipObject = [backingObject.managedObjectContext existingObjectWithID:backingRelationshipID
-                                                                                                                    error:NULL];
-                    [relationships setValue:backingRelationshipObject forKey:relationshipName];
-                }
-            }
+			if (![[relationshipObject objectID] isTemporaryID])
+			{
+				NSManagedObjectID *backingRelationshipID = [self objectIDForBackingObjectForEntity:relationshipDescrption.destinationEntity
+																			withResourceIdentifier:AFResourceIdentifierFromReferenceObject([self referenceObjectForObjectID:[relationshipObject objectID]])];
+				if (backingRelationshipID) {
+					NSManagedObject *backingRelationshipObject = [backingObject.managedObjectContext existingObjectWithID:backingRelationshipID
+																													error:NULL];
+					[relationships setValue:backingRelationshipObject forKey:relationshipName];
+				}
+			}
         }
     }
     
