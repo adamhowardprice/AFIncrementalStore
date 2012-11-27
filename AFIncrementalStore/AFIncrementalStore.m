@@ -821,12 +821,15 @@ inline NSString * AFResourceIdentifierFromReferenceObject(id referenceObject) {
             
             [backingObject setValue:backingRelationshipObjects forKey:relationshipName];
         } else {
-            NSManagedObjectID *backingRelationshipID = [self objectIDForBackingObjectForEntity:relationshipDescrption.entity
-                                                                        withResourceIdentifier:[self referenceObjectForObjectID:[relationshipObject objectID]]];
-            if (backingRelationshipID) {
-                NSManagedObject *backingRelationshipObject = [backingObject.managedObjectContext existingObjectWithID:backingRelationshipID
-                                                                                                                error:NULL];
-                [relationships setValue:backingRelationshipObject forKey:relationshipName];
+            if (![[relationshipObject objectID] isTemporaryID])
+            {
+                NSManagedObjectID *backingRelationshipID = [self objectIDForBackingObjectForEntity:relationshipDescrption.entity
+                                                                            withResourceIdentifier:[self referenceObjectForObjectID:[relationshipObject objectID]]];
+                if (backingRelationshipID) {
+                    NSManagedObject *backingRelationshipObject = [backingObject.managedObjectContext existingObjectWithID:backingRelationshipID
+                                                                                                                    error:NULL];
+                    [relationships setValue:backingRelationshipObject forKey:relationshipName];
+                }
             }
         }
     }
