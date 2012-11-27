@@ -186,7 +186,15 @@ static NSString * AFPluralizedString(NSString *string) {
     NSMutableDictionary *mutableAttributes = [representation mutableCopy];
     @autoreleasepool {
         NSMutableSet *mutableKeys = [NSMutableSet setWithArray:[representation allKeys]];
-        [mutableKeys minusSet:[NSSet setWithArray:[[entity propertiesByName] allKeys]]];
+		NSMutableArray *entitiesIncludingSuperEntities = [NSMutableArray array];
+		NSEntityDescription *superEntity = entity;
+		while (superEntity)
+		{
+			[entitiesIncludingSuperEntities addObjectsFromArray:[[superEntity propertiesByName] allKeys]];
+			superEntity = [superEntity superentity];
+		}
+		
+        [mutableKeys minusSet:[NSSet setWithArray:entitiesIncludingSuperEntities]];
         [mutableAttributes removeObjectsForKeys:[mutableKeys allObjects]];
     }
     
