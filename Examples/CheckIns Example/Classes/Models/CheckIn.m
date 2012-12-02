@@ -29,13 +29,14 @@
 @dynamic timestamp;
 
 - (id)initWithTimestamp:(NSDate *)timestamp inManagedObjectContext:(NSManagedObjectContext *)context{
-    self = [self initWithEntity:[NSEntityDescription entityForName:@"CheckIn" inManagedObjectContext:context] insertIntoManagedObjectContext:nil];
+    self = [self initWithEntity:[NSEntityDescription entityForName:NSStringFromClass([self class]) inManagedObjectContext:context] insertIntoManagedObjectContext:context];
     if (!self) {
         return nil;
     }
     
-    self.latitude = @(42.0);
-    self.longitude = @(69.0);
+	// Cupertino
+    self.latitude = @(37.3231);
+    self.longitude = @(-122.0311);
     self.timestamp = timestamp;
     
     return self;

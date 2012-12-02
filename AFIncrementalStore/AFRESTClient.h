@@ -74,3 +74,17 @@
  
  */
 extern NSDate * AFDateFromISO8601String(NSString *ISO8601String);
+
+/**
+ These three functions take an NSEntityDescription and walk up the "superentity" inheritance chain, adding all inherited
+ methods to a dictionary.
+ 
+ @return A dictionary containing all the attributes, relationships, or properties
+ associated with a particular entity, including those inherited from its superentities.
+ */
+
+extern NSDictionary *AFAttributesOfEntityAndAllSuperentities(NSEntityDescription *entity);
+
+extern NSDictionary *AFRelationshipsOfEntityAndAllSuperentities(NSEntityDescription *entity);
+
+extern NSDictionary *AFPropertiesOfEntityAndAllSuperentities(NSEntityDescription *entity);

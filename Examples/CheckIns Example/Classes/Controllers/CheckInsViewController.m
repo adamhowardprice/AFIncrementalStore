@@ -22,7 +22,7 @@
 
 #import "CheckInsViewController.h"
 
-#import "CheckIn.h"
+#import "ReverseGeocodedCheckIn.h"
 
 #import "AFIncrementalStore.h"
 
@@ -41,7 +41,7 @@
     
     self.title = NSLocalizedString(@"CheckIns", nil);
     
-    NSFetchRequest *fetchRequest = [NSFetchRequest fetchRequestWithEntityName:@"CheckIn"];
+    NSFetchRequest *fetchRequest = [NSFetchRequest fetchRequestWithEntityName:@"ReverseGeocodedCheckIn"];
     fetchRequest.sortDescriptors = [NSArray arrayWithObject:[NSSortDescriptor sortDescriptorWithKey:@"timestamp" ascending:NO]];
     fetchRequest.returnsObjectsAsFaults = NO;
     fetchRequest.includesPendingChanges = NO;
@@ -87,7 +87,18 @@
 }
 
 - (void)checkIn:(id)sender {
-    CheckIn *checkIn = [[CheckIn alloc] initWithTimestamp:[NSDate date] inManagedObjectContext:_fetchedResultsController.managedObjectContext];
+    ReverseGeocodedCheckIn *checkIn = [[ReverseGeocodedCheckIn alloc] initWithTimestamp:[NSDate date] inManagedObjectContext:_fetchedResultsController.managedObjectContext];
+	
+	[checkIn setCompletionBlock:
+	 ^(NSError *error)
+	{
+		if (error)
+			NSLog(@"Error: %@", error);
+		
+		[self.tableView reloadData];
+		NSError *saveError = nil;
+		[_fetchedResultsController.managedObjectContext save:&saveError];
+	}];
     
     [_fetchedResultsController.managedObjectContext insertObject:checkIn];
     
@@ -112,11 +123,13 @@
     
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellIdentifier];
     if (!cell) {
-        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:CellIdentifier];
+        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:CellIdentifier];
     }
     
-    CheckIn *checkIn = (CheckIn *)[_fetchedResultsController objectAtIndexPath:indexPath];
+    ReverseGeocodedCheckIn *checkIn = (ReverseGeocodedCheckIn *)[_fetchedResultsController objectAtIndexPath:indexPath];
     cell.textLabel.text = [[checkIn timestamp] description];
+	if (checkIn.postalCode)
+		cell.detailTextLabel.text = checkIn.postalCode;
     
     return cell;
 }
@@ -125,7 +138,7 @@
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
-    CheckIn *checkIn = (CheckIn *)[_fetchedResultsController objectAtIndexPath:indexPath];
+    ReverseGeocodedCheckIn *checkIn = (ReverseGeocodedCheckIn *)[_fetchedResultsController objectAtIndexPath:indexPath];
     NSLog(@"Checkin: %@", checkIn);
 }
 

@@ -24,6 +24,16 @@
 #include <time.h>
 #include <xlocale.h>
 
+// This macro wraps a pragma to suppress the warning LLVM uses when attempting
+// to use performSelector:(SEL) with an unknown selector in arc-compiled code.
+#define SuppressPerformSelectorLeakWarning(statement)					\
+({																		\
+_Pragma("clang diagnostic push")										\
+_Pragma("clang diagnostic ignored \"-Warc-performSelector-leaks\"")		\
+statement;																\
+_Pragma("clang diagnostic pop")											\
+})
+
 #define AF_ISO8601_MAX_LENGTH 25
 
 // Adopted from SSToolkit NSDate+SSToolkitAdditions
@@ -89,6 +99,32 @@ static NSString * AFPluralizedString(NSString *string) {
     }
 }
 
+NSDictionary *AFDescriptionOfEntityAndAllSuperentities(NSEntityDescription *entity, SEL selector)
+{	
+	NSCParameterAssert(selector == @selector(attributesByName) || selector == @selector(relationshipsByName) || selector == @selector(propertiesByName));
+	
+	NSEntityDescription *superentity = entity;
+	NSMutableDictionary *allDescriptions = [NSMutableDictionary dictionary];
+	while (superentity) {
+		NSDictionary *descriptions = SuppressPerformSelectorLeakWarning([superentity performSelector:selector]);
+		[allDescriptions addEntriesFromDictionary:descriptions];
+		superentity = superentity.superentity;
+	}
+	return allDescriptions;
+}
+
+NSDictionary *AFAttributesOfEntityAndAllSuperentities(NSEntityDescription *entity) {
+	return AFDescriptionOfEntityAndAllSuperentities(entity, @selector(attributesByName));
+}
+
+NSDictionary *AFRelationshipsOfEntityAndAllSuperentities(NSEntityDescription *entity) {
+	return AFDescriptionOfEntityAndAllSuperentities(entity, @selector(relationshipsByName));
+}
+
+NSDictionary *AFPropertiesOfEntityAndAllSuperentities(NSEntityDescription *entity) {
+	return AFDescriptionOfEntityAndAllSuperentities(entity, @selector(propertiesByName));
+}
+
 @implementation AFRESTClient
 
 - (NSString *)pathForEntity:(NSEntityDescription *)entity {
@@ -132,8 +168,8 @@ static NSString * AFPluralizedString(NSString *string) {
                                                            ofEntity:(NSEntityDescription *)entity
                                                        fromResponse:(NSHTTPURLResponse *)response
 {
-    NSMutableDictionary *mutableRelationshipRepresentations = [NSMutableDictionary dictionaryWithCapacity:[entity.relationshipsByName count]];
-    [entity.relationshipsByName enumerateKeysAndObjectsUsingBlock:^(id name, id relationship, BOOL *stop) {
+    NSMutableDictionary *mutableRelationshipRepresentations = [NSMutableDictionary dictionaryWithCapacity:[AFRelationshipsOfEntityAndAllSuperentities(entity) count]];
+    [AFRelationshipsOfEntityAndAllSuperentities(entity) enumerateKeysAndObjectsUsingBlock:^(id name, id relationship, BOOL *stop) {
         id value = [representation valueForKey:name];
         if (value) {
             if ([relationship isToMany]) {
@@ -186,7 +222,7 @@ static NSString * AFPluralizedString(NSString *string) {
     NSMutableDictionary *mutableAttributes = [representation mutableCopy];
     @autoreleasepool {
         NSMutableSet *mutableKeys = [NSMutableSet setWithArray:[representation allKeys]];
-        [mutableKeys minusSet:[NSSet setWithArray:[[entity propertiesByName] allKeys]]];
+        [mutableKeys minusSet:[NSSet setWithArray:[AFPropertiesOfEntityAndAllSuperentities(entity) allKeys]]];
         [mutableAttributes removeObjectsForKeys:[mutableKeys allObjects]];
     }
     
@@ -195,7 +231,7 @@ static NSString * AFPluralizedString(NSString *string) {
     }];
     [mutableAttributes removeObjectsForKeys:[keysWithNestedValues allObjects]];
     
-    [[entity attributesByName] enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
+    [AFAttributesOfEntityAndAllSuperentities(entity) enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
         if ([(NSAttributeDescription *)obj attributeType] == NSDateAttributeType) {
             id value = [mutableAttributes valueForKey:key];
             if (value && ![value isEqual:[NSNull null]]) {
@@ -249,12 +285,12 @@ static NSString * AFPluralizedString(NSString *string) {
 }
 
 - (NSMutableURLRequest *)requestForInsertedObject:(NSManagedObject *)insertedObject {
-    return [self requestWithMethod:@"POST" path:[self pathForEntity:insertedObject.entity] parameters:[self representationOfAttributes:[insertedObject dictionaryWithValuesForKeys:[insertedObject.entity.attributesByName allKeys]] ofManagedObject:insertedObject]];
+    return [self requestWithMethod:@"POST" path:[self pathForEntity:insertedObject.entity] parameters:[self representationOfAttributes:[insertedObject dictionaryWithValuesForKeys:[AFAttributesOfEntityAndAllSuperentities(insertedObject.entity) allKeys]] ofManagedObject:insertedObject]];
 }
 
 - (NSMutableURLRequest *)requestForUpdatedObject:(NSManagedObject *)updatedObject {
     NSMutableSet *mutableChangedAttributeKeys = [NSMutableSet setWithArray:[[updatedObject changedValues] allKeys]];
-    [mutableChangedAttributeKeys intersectSet:[NSSet setWithArray:[updatedObject.entity.attributesByName allKeys]]];
+    [mutableChangedAttributeKeys intersectSet:[NSSet setWithArray:[AFAttributesOfEntityAndAllSuperentities(updatedObject.entity) allKeys]]];
     
     return [self requestWithMethod:@"PUT" path:[self pathForObject:updatedObject] parameters:[self representationOfAttributes:[[updatedObject changedValues] dictionaryWithValuesForKeys:[mutableChangedAttributeKeys allObjects]] ofManagedObject:updatedObject]];
 }
