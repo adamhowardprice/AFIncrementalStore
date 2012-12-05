@@ -476,7 +476,6 @@ inline NSString * AFResourceIdentifierFromReferenceObject(id referenceObject) {
             if (!request) {
                 [backingContext performBlockAndWait:^{
                     NSManagedObject *backingObject = [backingContext existingObjectWithID:backingObjectID error:nil];
-					[self applyValueFromManagedObject:updatedObject toBackingManagedObject:backingObject];
 					NSArray *attributeKeys = updatedObject.entity.attributesByName.allKeys;
 					// Update only the attribute, the relationship will update with other request
 					[backingObject setValuesForKeysWithDictionary:[updatedObject dictionaryWithValuesForKeys:attributeKeys]];
